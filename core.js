@@ -4,18 +4,18 @@
 export const SCHEMA_VERSION = 1;
 
 export const DEFAULT_CATEGORIES = [
-  { id: 'lebensmittel', name: 'Lebensmittel & Haushalt', icon: '🛒', color: '#2f9e6b', kind: 'expense', budget: 0 },
-  { id: 'wohnen', name: 'Wohnen', icon: '🏠', color: '#4c6ef5', kind: 'expense', budget: 0 },
-  { id: 'mobilitaet', name: 'Mobilität', icon: '🚆', color: '#1c9cc4', kind: 'expense', budget: 0 },
-  { id: 'essen', name: 'Essen gehen', icon: '🍽️', color: '#e8590c', kind: 'expense', budget: 0 },
-  { id: 'freizeit', name: 'Freizeit', icon: '🎉', color: '#ae3ec9', kind: 'expense', budget: 0 },
-  { id: 'shopping', name: 'Shopping', icon: '🛍️', color: '#d6336c', kind: 'expense', budget: 0 },
-  { id: 'abos', name: 'Abos', icon: '🔁', color: '#7048e8', kind: 'expense', budget: 0 },
-  { id: 'gesundheit', name: 'Gesundheit', icon: '💊', color: '#0ca678', kind: 'expense', budget: 0 },
-  { id: 'sonstiges', name: 'Sonstiges', icon: '📦', color: '#868e96', kind: 'expense', budget: 0 },
-  { id: 'bar', name: 'Bargeld (ohne Zuordnung)', icon: '💶', color: '#a07c3b', kind: 'expense', budget: 0 },
-  { id: 'gehalt', name: 'Gehalt', icon: '💼', color: '#2b8a3e', kind: 'income', budget: 0 },
-  { id: 'einnahmen', name: 'Sonstige Einnahmen', icon: '➕', color: '#5c940d', kind: 'income', budget: 0 },
+  { id: 'lebensmittel', name: 'Lebensmittel & Haushalt', icon: 'cart', color: '#2f9e6b', kind: 'expense', budget: 0 },
+  { id: 'wohnen', name: 'Wohnen', icon: 'home', color: '#4c6ef5', kind: 'expense', budget: 0 },
+  { id: 'mobilitaet', name: 'Mobilität', icon: 'train', color: '#1c9cc4', kind: 'expense', budget: 0 },
+  { id: 'essen', name: 'Essen gehen', icon: 'utensils', color: '#e8590c', kind: 'expense', budget: 0 },
+  { id: 'freizeit', name: 'Freizeit', icon: 'ticket', color: '#ae3ec9', kind: 'expense', budget: 0 },
+  { id: 'shopping', name: 'Shopping', icon: 'bag', color: '#d6336c', kind: 'expense', budget: 0 },
+  { id: 'abos', name: 'Abos', icon: 'repeat', color: '#7048e8', kind: 'expense', budget: 0 },
+  { id: 'gesundheit', name: 'Gesundheit', icon: 'medical', color: '#0ca678', kind: 'expense', budget: 0 },
+  { id: 'sonstiges', name: 'Sonstiges', icon: 'box', color: '#868e96', kind: 'expense', budget: 0 },
+  { id: 'bar', name: 'Bargeld (ohne Zuordnung)', icon: 'banknote', color: '#a07c3b', kind: 'expense', budget: 0 },
+  { id: 'gehalt', name: 'Gehalt', icon: 'briefcase', color: '#2b8a3e', kind: 'income', budget: 0 },
+  { id: 'einnahmen', name: 'Sonstige Einnahmen', icon: 'plusCircle', color: '#5c940d', kind: 'income', budget: 0 },
 ];
 
 // ---------- kleine Helfer ----------
@@ -104,9 +104,9 @@ export function createInitialData(today = todayStr()) {
     createdAt: today,
     setupDone: false,
     accounts: [
-      { id: 'giro', name: 'George Girokonto', type: 'bank', icon: '🏦', startBalance: 0, startDate: today },
-      { id: 'cash', name: 'Bargeld', type: 'cash', icon: '💶', startBalance: 0, startDate: today },
-      { id: 'splitwise', name: 'Splitwise', type: 'splitwise', icon: '🤝', startBalance: null, startDate: today },
+      { id: 'giro', name: 'Girokonto', type: 'bank', icon: 'bank', startBalance: 0, startDate: today },
+      { id: 'cash', name: 'Bargeld', type: 'cash', icon: 'wallet', startBalance: 0, startDate: today },
+      { id: 'splitwise', name: 'Splitwise', type: 'splitwise', icon: 'users', startBalance: null, startDate: today },
     ],
     categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
     transactions: [],
@@ -136,9 +136,94 @@ export function normalizeData(d) {
   sw.items = sw.items || [];
   sw.overrides = sw.overrides || {};
   if (!d.accounts.some((a) => a.id === 'splitwise')) {
-    d.accounts.push({ id: 'splitwise', name: 'Splitwise', type: 'splitwise', icon: '🤝', startBalance: null, startDate: sw.since });
+    d.accounts.push({ id: 'splitwise', name: 'Splitwise', type: 'splitwise', icon: 'users', startBalance: null, startDate: sw.since });
+  }
+  // Erscheinungsbild
+  d.settings = { theme: 'system', accent: 'green', iconStyle: 'color', ...(d.settings || {}) };
+  // Umstellung von Emojis auf Linien-Icons (ältere Daten)
+  const defIcon = Object.fromEntries(DEFAULT_CATEGORIES.map((c) => [c.id, c.icon]));
+  const isKey = (s) => typeof s === 'string' && /^[a-zA-Z]+$/.test(s);
+  for (const c of d.categories) if (!isKey(c.icon)) c.icon = defIcon[c.id] || 'tag';
+  const accIcon = { bank: 'bank', cash: 'wallet', splitwise: 'users', goal: 'piggy' };
+  for (const a of d.accounts) {
+    if (!isKey(a.icon)) a.icon = accIcon[a.type] || 'tag';
+    if (a.id === 'giro' && a.name === 'George Girokonto') a.name = 'Girokonto';
+    if (a.type === 'goal' && !a.color) a.color = SAVINGS_COLORS[d.accounts.filter((x) => x.type === 'goal').indexOf(a) % SAVINGS_COLORS.length];
   }
   return d;
+}
+
+export const SAVINGS_COLORS = ['#2f9e6b', '#1c7ed6', '#7048e8', '#e8590c', '#0ca678', '#d6336c', '#a07c3b'];
+
+/** Summe des George-Bereichs: Girokonto + alle Sparkonten. */
+export function georgeTotal(data, bal) {
+  return round2(data.accounts.filter((a) => a.type === 'bank' || a.type === 'goal').reduce((s, a) => s + (bal[a.id] || 0), 0));
+}
+
+// ---------- Rechnungen ----------
+
+/**
+ * Liest aus dem erkannten Text einer Rechnung Betrag, Datum, Geschäft und Zahlungsart.
+ * Heuristisch – alle Werte werden dem Nutzer zur Kontrolle vorgeschlagen.
+ */
+export function parseReceiptText(text, today = todayStr()) {
+  const raw = String(text || '');
+  const lines = raw.split(/\r?\n/).map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const amountRe = /(^|[^\d.,])(\d{1,5}(?:[.' ]\d{3})*\s?[,.]\s?\d{2})(?!\d)/g;
+  const amounts = (l) => [...l.matchAll(amountRe)].map((m) => parseAmount(m[2].replace(/['\s]/g, ''))).filter((v) => v > 0 && v < 100000);
+  const strong = /(summe|gesamt|total|zu zahlen|zahlbetrag|endbetrag|rechnungsbetrag|betrag)/i;
+  const skip = /(mwst|ust\b|steuer|netto|r[uü]ckgeld|wechselgeld|zur[uü]ck|gegeben|rabatt|ersparnis|gespart|punkte)/i;
+
+  let amount = null;
+  for (const l of lines) {
+    if (strong.test(l) && !skip.test(l)) {
+      const a = amounts(l);
+      if (a.length) { amount = a[a.length - 1]; break; }
+    }
+  }
+  if (amount == null) {
+    let max = 0;
+    for (const l of lines) if (!skip.test(l)) for (const v of amounts(l)) if (v > max) max = v;
+    amount = max || null;
+  }
+
+  let date = null;
+  const validDate = (d, mo, y) => {
+    const yy = y < 100 ? 2000 + y : y;
+    if (mo < 1 || mo > 12 || d < 1 || d > daysInMonth(yy, mo)) return null;
+    const ds = `${yy}-${pad(mo)}-${pad(d)}`;
+    return ds <= addDays(today, 1) && ds >= addDays(today, -400) ? ds : null;
+  };
+  const dRe = /(\d{1,2})\s?[.,/-]\s?(\d{1,2})\s?[.,/-]\s?(\d{4}|\d{2})(?!\d)/;
+  // Texterkennung liest die Punkte im Datum manchmal als Ziffer: „1341142026“ statt „13.11.2026“
+  const dMisread = /(?:^|\D)(\d{2})(\d)(\d{2})\2(20\d{2})(?!\d)/;
+  for (const l of lines) {
+    const m = l.match(dRe);
+    if (m) { date = validDate(Number(m[1]), Number(m[2]), Number(m[3])); if (date) break; }
+  }
+  if (!date) {
+    for (const l of lines) {
+      const m = l.match(dMisread);
+      if (m) { date = validDate(Number(m[1]), Number(m[3]), Number(m[4])); if (date) break; }
+    }
+  }
+
+  const noise = /(rechnung|beleg|kassenbon|\bbon\b|datum|uhrzeit|tel\.?|telefon|www\.|http|str\.|stra(ss|ß)e|filiale|\buid\b|atu\d|kasse|willkommen|danke)/i;
+  let merchant = '';
+  for (const l of lines.slice(0, 8)) {
+    const letters = (l.match(/[A-Za-zÄÖÜäöüß]/g) || []).length;
+    if (letters >= 3 && letters >= l.length * 0.5 && !/\d{3,}/.test(l) && !noise.test(l)) { merchant = l; break; }
+  }
+  merchant = merchant.replace(/^[^A-Za-zÄÖÜäöüß0-9]+|[^A-Za-zÄÖÜäöüß0-9.)]+$/g, '').slice(0, 40);
+  if (merchant && merchant === merchant.toUpperCase()) {
+    merchant = merchant.toLowerCase().replace(/(^|[\s&-])([a-zäöü])/g, (m, a, b) => a + b.toUpperCase());
+  }
+
+  let pay = null;
+  if (/(karte|debit|maestro|visa|mastercard|kontaktlos|girocard|bankomat|apple pay|google pay|nfc)/i.test(raw)) pay = 'giro';
+  else if (/(\bbar\b|gegeben|r[uü]ckgeld|wechselgeld)/i.test(raw)) pay = 'cash';
+
+  return { amount: amount == null ? null : round2(amount), date, merchant, pay };
 }
 
 export function getAccount(data, id) {
