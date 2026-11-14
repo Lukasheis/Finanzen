@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Finanzen</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Finanzen">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <main id="view" aria-live="polite"></main>
+    <button id="fab" class="fab" data-action="newEntry" aria-label="Neue Buchung">+</button>
+    <nav class="tabbar" id="tabbar">
+      <button data-tab="home"><span class="ti">◉</span><span>Übersicht</span></button>
+      <button data-tab="spending"><span class="ti">▤</span><span>Ausgaben</span></button>
+      <button data-tab="goals"><span class="ti">◎</span><span>Ziele</span></button>
+      <button data-tab="depot"><span class="ti">↗</span><span>Depot</span></button>
+      <button data-tab="more"><span class="ti">⋯</span><span>Mehr</span></button>
+    </nav>
+  </div>
+  <div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+  <div id="sheet" class="sheet" role="dialog" aria-modal="true" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
