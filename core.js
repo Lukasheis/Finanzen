@@ -64,13 +64,24 @@ export function dateForDay(key, day) {
   return `${key}-${pad(Math.min(Math.max(1, day), daysInMonth(y, m)))}`;
 }
 
-/** Alle Ausführungstermine eines monatlichen Auftrags zwischen from und to (inklusive). */
-export function occurrences(fromDate, toDate, day) {
+/**
+ * Alle Ausführungstermine eines Auftrags zwischen from und to (inklusive).
+ * interval: alle wie viele Monate (1 = monatlich, 3 = vierteljährlich, 12 = jährlich),
+ * gezählt ab dem Monat von fromDate.
+ */
+export function occurrences(fromDate, toDate, day, interval = 1, anchor = null) {
   const out = [];
   if (!fromDate || !toDate || fromDate > toDate) return out;
+  const step = Math.max(1, Number(interval) || 1);
   let key = monthKey(fromDate);
+  if (anchor && step > 1) {
+    // auf den Rhythmus des Ankermonats ausrichten (z. B. jährlich im März)
+    const idx = (k) => { const [y, m] = k.split('-').map(Number); return y * 12 + m - 1; };
+    const off = (((idx(monthKey(anchor)) - idx(key)) % step) + step) % step;
+    key = addMonths(key, off);
+  }
   const last = monthKey(toDate);
-  for (let i = 0; i < 600 && key <= last; i++, key = addMonths(key, 1)) {
+  for (let i = 0; i < 600 && key <= last; i++, key = addMonths(key, step)) {
     const d = dateForDay(key, day);
     if (d >= fromDate && d <= toDate) out.push(d);
   }
@@ -87,12 +98,23 @@ export function nextOccurrence(fromDate, day) {
   return null;
 }
 
+/** Nächster Termin eines Dauerauftrags (berücksichtigt Intervall und Start). */
+export function nextRuleDate(rule, fromDate) {
+  const from = rule.startDate && rule.startDate > fromDate ? rule.startDate : fromDate;
+  const step = Math.max(1, Number(rule.interval) || 1);
+  const list = occurrences(from, monthEnd(addMonths(monthKey(from), step + 1)), rule.day, step, rule.anchorDate || rule.startDate);
+  return list[0] || null;
+}
+
+export const INTERVALS = { 1: 'monatlich', 3: 'vierteljährlich', 6: 'halbjährlich', 12: 'jährlich' };
+
 export function parseAmount(v) {
   if (typeof v === 'number') return v;
   if (v == null) return NaN;
   let s = String(v).trim().replace(/\s|€/g, '');
   // "1.234,56" -> "1234.56"; "12,5" -> "12.5"; "12.50" bleibt
   if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ''); // "12.000" = zwölftausend
   return s === '' ? NaN : Number(s);
 }
 
@@ -144,7 +166,7 @@ export function normalizeData(d) {
   const defIcon = Object.fromEntries(DEFAULT_CATEGORIES.map((c) => [c.id, c.icon]));
   const isKey = (s) => typeof s === 'string' && /^[a-zA-Z]+$/.test(s);
   for (const c of d.categories) if (!isKey(c.icon)) c.icon = defIcon[c.id] || 'tag';
-  const accIcon = { bank: 'bank', cash: 'wallet', splitwise: 'users', goal: 'piggy' };
+  const accIcon = { bank: 'bank', cash: 'wallet', splitwise: 'users', goal: 'piggy', insurance: 'shield' };
   for (const a of d.accounts) {
     if (!isKey(a.icon)) a.icon = accIcon[a.type] || 'tag';
     if (a.id === 'giro' && a.name === 'George Girokonto') a.name = 'Girokonto';
@@ -361,7 +383,14 @@ export function splitwiseCsvItems(parsed, me) {
  */
 export function buildLedger(data) {
   const out = [];
-  for (const t of data.transactions) out.push({ source: 'manual', ...t });
+  for (const t of data.transactions) {
+    if (t.kind === 'expense' && t.split) {
+      // Geteilte Rechnung: Ausgabe = mein Anteil (über Splitwise), mein bezahlter Betrag fließt ins Splitwise-Guthaben
+      const paid = round2(t.split.paid || 0);
+      if (paid > 0) out.push({ ...t, id: `${t.id}~p`, kind: 'transfer', amount: paid, accountId: t.split.payAcc || null, toAccountId: 'splitwise', categoryId: null, hidden: true, parent: t.id, source: 'split' });
+      out.push({ source: 'manual', ...t, accountId: 'splitwise' });
+    } else out.push({ source: 'manual', ...t });
+  }
 
   const sw = data.splitwise;
   for (const raw of sw.items) {
@@ -488,7 +517,7 @@ export function bookDueRecurring(data, today = todayStr()) {
   for (const r of data.recurring) {
     if (r.active === false) continue;
     const end = r.endDate && r.endDate < today ? r.endDate : today;
-    for (const d of occurrences(r.startDate, end, r.day)) {
+    for (const d of occurrences(r.startDate, end, r.day, r.interval || 1, r.anchorDate || r.startDate)) {
       if (r.lastBooked && d <= r.lastBooked) continue;
       if (r.kind === 'depot') {
         const h = data.depot.holdings.find((x) => x.id === r.holdingId);
@@ -504,6 +533,7 @@ export function bookDueRecurring(data, today = todayStr()) {
           id: uid(), date: d, kind: r.kind, amount: r.amount, accountId: r.accountId || null,
           toAccountId: r.toAccountId || null, categoryId: r.categoryId || null,
           note: r.note || '', recurringId: r.id, source: 'recurring',
+          ...(r.contributor ? { contributor: r.contributor } : {}),
         });
       }
       r.lastBooked = d;
@@ -538,9 +568,41 @@ export function monthStats(data, ledger, key) {
   return { expense: round2(expense), income: round2(income), net: round2(income - expense), categories, budgetTotal, entries: entries.reverse() };
 }
 
-/** Summe, die in die Vermögensübersicht einfließt (ohne Depot). */
-export function liquidTotal(data, bal) {
-  return round2(data.accounts.reduce((s, a) => s + (bal[a.id] || 0), 0));
+/** Summe, die in die Vermögensübersicht einfließt (ohne Depot). Bei geteilten Sparkonten zählt nur dein Anteil. */
+export function liquidTotal(data, bal, ledger = null, date = null) {
+  return round2(data.accounts.reduce((s, a) => {
+    if (a.type === 'goal' && a.shared && ledger) return s + goalOwnership(data, ledger, a, date || todayStr()).mine;
+    return s + (bal[a.id] || 0);
+  }, 0));
+}
+
+/**
+ * Wem gehört wie viel auf einem Sparkonto? Startanteil + eigene Einzahlungen − Entnahmen;
+ * Einzahlungen anderer (mit „contributor“) zählen für sie. Zinsen/Korrekturen anteilig.
+ */
+export function goalOwnership(data, ledger, goal, date = todayStr()) {
+  const start = goal.startBalance || 0;
+  let mine = goal.shared ? (goal.myStartShare ?? start) : start;
+  let others = start - mine;
+  const byPerson = {};
+  if (goal.shared && others) byPerson['Andere (Startguthaben)'] = round2(others);
+  for (const e of ledger) {
+    if (e.date > date) break;
+    if (e.date < (goal.startDate || '')) continue;
+    const amt = e.amount || 0;
+    const into = e.toAccountId === goal.id || ((e.kind === 'income' || e.kind === 'adjust') && e.accountId === goal.id);
+    if (e.kind === 'adjust' && e.accountId === goal.id) {
+      const tot = mine + others;
+      if (goal.shared && tot > 0) { const r = mine / tot; mine += amt * r; others += amt * (1 - r); } else mine += amt;
+      continue;
+    }
+    if (into) {
+      if (e.contributor && goal.shared) { others += amt; byPerson[e.contributor] = round2((byPerson[e.contributor] || 0) + amt); } else mine += amt;
+    } else if (e.accountId === goal.id && (e.kind === 'transfer' || e.kind === 'expense' || e.kind === 'invest')) {
+      mine -= amt;
+    }
+  }
+  return { total: round2(mine + others), mine: round2(mine), others: round2(others), byPerson };
 }
 
 /** Vermögensverlauf: ein Punkt pro Monatsende (aktueller Monat = heute). */
@@ -554,14 +616,17 @@ export function netWorthSeries(data, ledger, today = todayStr(), months = 12) {
     const date = monthEnd(key) < today ? monthEnd(key) : today;
     const bal = balancesAt(data, ledger, date);
     const depot = date === today ? depotSummary(data).value : depotSummary(data, date).invested;
-    pts.push({ month: key, date, value: round2(liquidTotal(data, bal) + depot) });
+    pts.push({ month: key, date, value: round2(liquidTotal(data, bal, ledger, date) + depot) });
   }
   return pts;
 }
 
 /** Monatliche Sparrate eines Ziels (Summe aktiver Daueraufträge auf das Ziel). */
-export function goalMonthlyRate(data, goalId) {
-  return round2(data.recurring.filter((r) => r.active !== false && r.kind === 'transfer' && r.toAccountId === goalId).reduce((s, r) => s + r.amount, 0));
+export function goalMonthlyRate(data, goalId, who = 'all') {
+  return round2(data.recurring
+    .filter((r) => r.active !== false && r.kind === 'transfer' && r.toAccountId === goalId)
+    .filter((r) => (who === 'me' ? !r.contributor : who === 'others' ? !!r.contributor : true))
+    .reduce((s, r) => s + r.amount / (r.interval || 1), 0));
 }
 
 export function goalProjection(data, goal, current, today = todayStr()) {

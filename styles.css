@@ -315,3 +315,45 @@ form:not([data-kind="transfer"]) .only-transfer,
 form:not([data-kind="expense"]) .only-expense,
 form:not([data-kind="income"]) .only-income { display: none; }
 .btn-row > * { min-width: 0; }
+
+/* ---------- Geteilte Rechnung (Splitwise) ---------- */
+.split-panel { background: var(--card); border-radius: 14px; padding: 12px 12px 2px; margin: -4px 0 14px; }
+.split-panel .seg { margin-bottom: 10px; background: var(--chip); }
+.share-row { display: flex; gap: 10px; align-items: flex-end; }
+.share-row .field { flex: 1; }
+.share-row .field input { background: var(--card-2); }
+.share-row .btn { margin-bottom: 12px; min-height: 46px; }
+.split-hint { margin-bottom: 10px; }
+.if-split { display: none; }
+form[data-kind="expense"][data-pay="splitwise"] .if-split { display: block; }
+form:not([data-pay="splitwise"]) .split-panel, form:not([data-kind="expense"]) .split-panel { display: none; }
+form:not([data-target="goal"]) .contrib-field { display: none; }
+form:not([data-shared="1"]) .shared-field { display: none; }
+
+/* ---------- Vorsorge: Suche, Lexikon, Dokumente ---------- */
+.searchbar { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 12px; padding: 0 12px; margin-bottom: 6px; box-shadow: var(--shadow); color: var(--muted); }
+.searchbar .i { width: 18px; height: 18px; }
+.searchbar input { flex: 1; border: 0; background: transparent; font-size: 17px; padding: 12px 0; min-width: 0; outline: none; color: var(--text); -webkit-appearance: none; }
+mark { background: color-mix(in srgb, var(--accent) 25%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.term { border-top: 1px solid var(--line); }
+.term:first-child { border-top: 0; }
+.term summary { display: flex; align-items: center; gap: 12px; padding: 11px 14px 11px 16px; list-style: none; cursor: pointer; }
+.term summary::-webkit-details-marker { display: none; }
+.term .term-name { flex: 1; font-weight: 500; }
+.term[open] .chev.down { transform: rotate(-90deg); color: var(--accent); opacity: 1; }
+.term p { margin: 0 16px 12px; font-size: 15px; line-height: 1.5; }
+.term p + p { margin-top: -4px; }
+.val-amt { font-weight: 600; }
+.doc-row { align-items: flex-start; }
+.doc-thumb { width: 38px; height: 48px; object-fit: cover; border-radius: 6px; flex: none; background: var(--chip); border: 1px solid var(--line); }
+.snippet { font-size: 13px; color: var(--muted); margin-top: 4px; white-space: normal; line-height: 1.4; }
+.doc-head { display: flex; gap: 12px; align-items: center; background: var(--card); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+.doc-head img, .doc-head .thumb-ph { width: 56px; height: 72px; object-fit: cover; border-radius: 8px; flex: none; background: var(--chip); display: grid; place-items: center; color: var(--muted); }
+.doc-head .title { font-weight: 600; font-size: 17px; }
+.callout p:last-child { margin-bottom: 0 !important; }
+.callout .i { flex: none; }
+.fulltext { background: var(--card); border-radius: 14px; margin-top: 14px; }
+.fulltext summary { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; list-style: none; font-weight: 500; }
+.fulltext summary::-webkit-details-marker { display: none; }
+.fulltext pre { white-space: pre-wrap; font: 13px/1.45 ui-monospace, Menlo, monospace; margin: 0; padding: 0 14px 14px; color: var(--muted); max-height: 50vh; overflow: auto; }
+.scan-progress .scan-img .i { width: 48px; height: 48px; color: var(--muted); }

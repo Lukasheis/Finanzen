@@ -60,10 +60,14 @@ const P = {
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
   moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
   monitor: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
+  shield: '<path d="M12 3l8 3v5.5c0 4.7-3.3 8.4-8 9.5-4.7-1.1-8-4.8-8-9.5V6z"/><path d="M8.8 12.2l2.2 2.2 4.4-4.6"/>',
+  file: '<path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h5"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/>',
+  lightbulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>',
 };
 
 /** Icons, aus denen man für Kategorien und Sparkonten wählen kann. */
-export const ICON_CHOICES = ['cart', 'home', 'train', 'car', 'utensils', 'ticket', 'bag', 'repeat', 'medical', 'box', 'banknote', 'briefcase', 'plusCircle', 'piggy', 'safe', 'target', 'travel', 'gift', 'heart', 'umbrella', 'book', 'phone', 'sport', 'tag', 'receipt'];
+export const ICON_CHOICES = ['shield', 'cart', 'home', 'train', 'car', 'utensils', 'ticket', 'bag', 'repeat', 'medical', 'box', 'banknote', 'briefcase', 'plusCircle', 'piggy', 'safe', 'target', 'travel', 'gift', 'heart', 'umbrella', 'book', 'phone', 'sport', 'tag', 'receipt'];
 
 export function icon(name, cls = '') {
   const body = P[name] || P.tag;
